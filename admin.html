@@ -140,14 +140,13 @@
 const SUPABASE_URL = 'https://qdeiprwyqbxpqgqqkvbj.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkZWlwcnd5cWJ4cHFncXFrdmJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDQ0OTksImV4cCI6MjA5MDM4MDQ5OX0.LoHEEZ-AHo4XH0hlxs8icgFJT14vDl0x2_omgzRPKFc'
 
-const { createClient } = window.supabase || window
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let currentUser = null
 let reviewMode = 'off'
 
 // Check session on load
 async function init() {
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { session } } = await sb.auth.getSession()
   if (session) {
     currentUser = session.user
     await checkAdmin()
@@ -160,7 +159,7 @@ async function handleLogin() {
   const errorEl = document.getElementById('loginError')
   errorEl.textContent = ''
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await sb.auth.signInWithPassword({ email, password })
   if (error) { errorEl.textContent = error.message; return }
 
   currentUser = data.user
@@ -168,10 +167,10 @@ async function handleLogin() {
 }
 
 async function checkAdmin() {
-  const { data } = await supabase.from('admin_users').select('email').eq('email', currentUser.email).maybeSingle()
+  const { data } = await sb.from('admin_users').select('email').eq('email', currentUser.email).maybeSingle()
   if (!data) {
     document.getElementById('loginError').textContent = 'Access denied. Not an admin.'
-    await supabase.auth.signOut()
+    await sb.auth.signOut()
     return
   }
   document.getElementById('loginScreen').style.display = 'none'
@@ -180,23 +179,23 @@ async function checkAdmin() {
 }
 
 async function handleLogout() {
-  await supabase.auth.signOut()
+  await sb.auth.signOut()
   location.reload()
 }
 
 async function loadDashboard() {
   // Stats
-  const { count: pending } = await supabase.from('fortunes').select('*', { count: 'exact', head: true }).eq('status', 'pending_review')
+  const { count: pending } = await sb.from('fortunes').select('*', { count: 'exact', head: true }).eq('status', 'pending_review')
   const today = new Date().toISOString().split('T')[0]
-  const { count: todayTotal } = await supabase.from('fortunes').select('*', { count: 'exact', head: true }).gte('created_at', today)
-  const { count: users } = await supabase.from('users').select('*', { count: 'exact', head: true })
+  const { count: todayTotal } = await sb.from('fortunes').select('*', { count: 'exact', head: true }).gte('created_at', today)
+  const { count: users } = await sb.from('users').select('*', { count: 'exact', head: true })
 
   document.getElementById('pendingCount').textContent = pending ?? 0
   document.getElementById('todayCount').textContent = todayTotal ?? 0
   document.getElementById('totalUsers').textContent = users ?? 0
 
   // Review mode
-  const { data: settings } = await supabase.from('app_settings').select('value').eq('key', 'review_mode').single()
+  const { data: settings } = await sb.from('app_settings').select('value').eq('key', 'review_mode').single()
   reviewMode = settings?.value ?? 'off'
   updateReviewToggle()
 
@@ -209,7 +208,7 @@ async function loadDashboard() {
 
   // Get user names
   const userIds = [...new Set((fortunes ?? []).map(f => f.user_id))]
-  const { data: usersList } = await supabase.from('users').select('id, display_name, email').in('id', userIds)
+  const { data: usersList } = await sb.from('users').select('id, display_name, email').in('id', userIds)
   const usersMap = Object.fromEntries((usersList ?? []).map(u => [u.id, u]))
 
   renderFortunes(fortunes ?? [], usersMap)
@@ -249,10 +248,10 @@ function renderFortunes(fortunes, usersMap) {
 }
 
 async function openDetail(fortuneId) {
-  const { data: fortune } = await supabase.from('fortunes').select('*').eq('id', fortuneId).single()
+  const { data: fortune } = await sb.from('fortunes').select('*').eq('id', fortuneId).single()
   if (!fortune) return
 
-  const { data: user } = await supabase.from('users').select('*').eq('id', fortune.user_id).single()
+  const { data: user } = await sb.from('users').select('*').eq('id', fortune.user_id).single()
   const userName = user?.display_name ?? 'Unknown'
 
   document.getElementById('modalTitle').textContent = `${fortune.type.toUpperCase()} Reading`
@@ -309,7 +308,7 @@ function closeModal() {
 }
 
 async function approveFortune(id) {
-  const { error } = await supabase.from('fortunes').update({ status: 'approved' }).eq('id', id)
+  const { error } = await sb.from('fortunes').update({ status: 'approved' }).eq('id', id)
   if (error) { alert('Error: ' + error.message); return }
   closeModal()
   loadDashboard()
@@ -317,14 +316,14 @@ async function approveFortune(id) {
 
 async function rejectFortune(id) {
   if (!confirm('Reject this reading and refund credits?')) return
-  const { data: fortune } = await supabase.from('fortunes').select('user_id, type, credit_cost').eq('id', id).single()
+  const { data: fortune } = await sb.from('fortunes').select('user_id, type, credit_cost').eq('id', id).single()
   if (!fortune) return
 
-  await supabase.from('fortunes').update({ status: 'rejected' }).eq('id', id)
+  await sb.from('fortunes').update({ status: 'rejected' }).eq('id', id)
 
   // Refund via RPC
   try {
-    await supabase.rpc('refund_credits', {
+    await sb.rpc('refund_credits', {
       p_user_id: fortune.user_id,
       p_amount: fortune.credit_cost || 3,
       p_fortune_type: fortune.type + ' (rejected by admin)',
@@ -337,7 +336,7 @@ async function rejectFortune(id) {
 
 async function toggleReviewMode() {
   const newMode = reviewMode === 'on' ? 'off' : 'on'
-  await supabase.from('app_settings').update({ value: newMode, updated_at: new Date().toISOString() }).eq('key', 'review_mode')
+  await sb.from('app_settings').update({ value: newMode, updated_at: new Date().toISOString() }).eq('key', 'review_mode')
   reviewMode = newMode
   updateReviewToggle()
 }
