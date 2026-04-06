@@ -65,6 +65,16 @@
     .btn-approve:hover { opacity: 0.9; }
     .btn-reject:hover { background: rgba(229,115,115,0.1); }
 
+    /* Filters */
+    .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .filter-search { flex: 1; min-width: 180px; height: 38px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0 12px; color: #ede7d9; font-size: 13px; outline: none; }
+    .filter-search:focus { border-color: #b8a0d4; }
+    .filter-search::placeholder { color: rgba(237,231,217,0.3); }
+    .filter-select { height: 38px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0 10px; color: #ede7d9; font-size: 13px; outline: none; cursor: pointer; -webkit-appearance: none; }
+    .filter-select:focus { border-color: #b8a0d4; }
+    .filter-select option { background: #1a1520; color: #ede7d9; }
+    .filter-count { font-size: 12px; color: rgba(237,231,217,0.3); white-space: nowrap; }
+
     /* User history */
     .user-history { margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); }
     .user-history h3 { font-size: 13px; color: rgba(237,231,217,0.5); margin-bottom: 12px; }
@@ -112,6 +122,50 @@
       <div class="stat-value" id="totalUsers">0</div>
       <div class="stat-label">Total Users</div>
     </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <input type="text" class="filter-search" id="filterSearch" placeholder="Search user or content..." oninput="applyFilters()" />
+    <select class="filter-select" id="filterStatus" onchange="applyFilters()">
+      <option value="">All Status</option>
+      <option value="pending_review">Pending</option>
+      <option value="approved">Approved</option>
+      <option value="rejected">Rejected</option>
+    </select>
+    <select class="filter-select" id="filterType" onchange="applyFilters()">
+      <option value="">All Types</option>
+      <option value="coffee">Coffee</option>
+      <option value="tarot">Tarot</option>
+      <option value="tarot3q">Tarot 3Q</option>
+      <option value="palm">Palm</option>
+      <option value="dream">Dream</option>
+      <option value="love">Love</option>
+      <option value="numerology">Numerology</option>
+      <option value="birthchart">Birth Chart</option>
+      <option value="psychic">Psychic</option>
+      <option value="telepathy">Telepathy</option>
+      <option value="pet">Pet</option>
+      <option value="angel">Angel</option>
+      <option value="moon">Moon</option>
+      <option value="face">Face</option>
+      <option value="aura">Aura</option>
+    </select>
+    <select class="filter-select" id="filterPersona" onchange="applyFilters()">
+      <option value="">All Guides</option>
+      <option value="stella">Stella</option>
+      <option value="ayla">Ayla</option>
+      <option value="zara">Zara</option>
+      <option value="nazar">Nazar</option>
+      <option value="kaan">Kaan</option>
+    </select>
+    <select class="filter-select" id="filterDate" onchange="applyFilters()">
+      <option value="">All Time</option>
+      <option value="today">Today</option>
+      <option value="7d">Last 7 days</option>
+      <option value="30d">Last 30 days</option>
+    </select>
+    <span class="filter-count" id="filterCount"></span>
   </div>
 
   <div class="fortune-list" id="fortuneList">
@@ -200,25 +254,62 @@ async function loadDashboard() {
   reviewMode = settings?.value ?? 'off'
   updateReviewToggle()
 
-  // Load fortunes (pending first, then recent)
+  // Load fortunes (get more for filtering)
   const { data: fortunes } = await sb
     .from('fortunes')
     .select('id, type, persona, user_id, intention, result_text, status, created_at, credit_cost')
     .order('created_at', { ascending: false })
-    .limit(50)
+    .limit(200)
 
   // Get user names
   const userIds = [...new Set((fortunes ?? []).map(f => f.user_id))]
-  const { data: usersList } = await sb.from('users').select('id, display_name, email').in('id', userIds)
-  const usersMap = Object.fromEntries((usersList ?? []).map(u => [u.id, u]))
+  const { data: usersList } = userIds.length > 0
+    ? await sb.from('users').select('id, display_name, email').in('id', userIds)
+    : { data: [] }
+  allUsersMap = Object.fromEntries((usersList ?? []).map(u => [u.id, u]))
+  allFortunes = fortunes ?? []
 
-  renderFortunes(fortunes ?? [], usersMap)
+  applyFilters()
+}
+
+// Store data globally for filtering
+let allFortunes = []
+let allUsersMap = {}
+
+function applyFilters() {
+  const search = (document.getElementById('filterSearch').value ?? '').toLowerCase()
+  const status = document.getElementById('filterStatus').value
+  const type = document.getElementById('filterType').value
+  const persona = document.getElementById('filterPersona').value
+  const dateRange = document.getElementById('filterDate').value
+
+  const now = Date.now()
+  const dateThresholds = { today: 1, '7d': 7, '30d': 30 }
+  const dateCutoff = dateRange ? new Date(now - (dateThresholds[dateRange] ?? 999) * 86400000) : null
+
+  const filtered = allFortunes.filter(f => {
+    if (status && f.status !== status) return false
+    if (type && f.type !== type) return false
+    if (persona && f.persona !== persona) return false
+    if (dateCutoff && new Date(f.created_at) < dateCutoff) return false
+    if (search) {
+      const user = allUsersMap[f.user_id]
+      const userName = (user?.display_name ?? user?.email ?? '').toLowerCase()
+      const content = (f.result_text ?? '').toLowerCase()
+      const intention = (f.intention ?? '').toLowerCase()
+      if (!userName.includes(search) && !content.includes(search) && !intention.includes(search) && !f.type.includes(search)) return false
+    }
+    return true
+  })
+
+  document.getElementById('filterCount').textContent = `${filtered.length} of ${allFortunes.length}`
+  renderFortunes(filtered, allUsersMap)
 }
 
 function renderFortunes(fortunes, usersMap) {
   const list = document.getElementById('fortuneList')
   if (fortunes.length === 0) {
-    list.innerHTML = '<div class="empty">No readings yet</div>'
+    list.innerHTML = '<div class="empty">No readings match your filters</div>'
     return
   }
 
@@ -356,6 +447,7 @@ window.openDetail = openDetail
 window.closeModal = closeModal
 window.approveFortune = approveFortune
 window.rejectFortune = rejectFortune
+window.applyFilters = applyFilters
 
 // Auto-refresh every 30s
 setInterval(() => { if (document.getElementById('dashboard').style.display === 'block') loadDashboard() }, 30000)
