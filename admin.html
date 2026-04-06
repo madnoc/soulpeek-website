@@ -372,9 +372,13 @@ async function openDetail(fortuneId) {
     .filter(([k, v]) => v && k !== 'imagePaths' && k !== 'fortuneId')
     .map(([k, v]) => `${k}: ${v}`)
 
-  // Photo paths
+  // Photo paths — use signed URLs since bucket is private
   const photoPaths = input.imagePaths ?? []
-  const photoBaseUrl = `${SUPABASE_URL}/storage/v1/object/public/fortune-photos/`
+  const photoUrls = []
+  for (const path of photoPaths) {
+    const { data } = await sb.storage.from('fortune-photos').createSignedUrl(path, 3600)
+    if (data?.signedUrl) photoUrls.push(data.signedUrl)
+  }
 
   const meta = document.getElementById('modalMeta')
   meta.innerHTML = [
@@ -403,10 +407,10 @@ async function openDetail(fortuneId) {
   }
 
   // Photos section
-  if (photoPaths.length > 0) {
+  if (photoUrls.length > 0) {
     detailHtml += '<div class="input-section"><h4>Photos</h4><div class="photo-grid">'
-    for (const path of photoPaths) {
-      detailHtml += `<img src="${photoBaseUrl}${path}" class="photo-thumb" onerror="this.style.display='none'" />`
+    for (const url of photoUrls) {
+      detailHtml += `<img src="${url}" class="photo-thumb" onerror="this.style.display='none'" />`
     }
     detailHtml += '</div></div>'
   }
