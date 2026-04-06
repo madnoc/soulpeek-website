@@ -376,7 +376,7 @@ async function openDetail(fortuneId) {
   const photoPaths = input.imagePaths ?? []
   const photoUrls = []
   for (const path of photoPaths) {
-    const { data } = await sb.storage.from('fortune-photos').createSignedUrl(path, 3600)
+    const { data } = await sb.storage.from('fortune-photos').createSignedUrl(path, 604800)
     if (data?.signedUrl) photoUrls.push(data.signedUrl)
   }
 
