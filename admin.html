@@ -135,12 +135,13 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 const SUPABASE_URL = 'https://qdeiprwyqbxpqgqqkvbj.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkZWlwcnd5cWJ4cHFncXFrdmJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDQ0OTksImV4cCI6MjA5MDM4MDQ5OX0.LoHEEZ-AHo4XH0hlxs8icgFJT14vDl0x2_omgzRPKFc'
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+const { createClient } = window.supabase || window
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let currentUser = null
 let reviewMode = 'off'
 
@@ -346,6 +347,15 @@ function updateReviewToggle() {
   btn.textContent = `Review Mode: ${reviewMode.toUpperCase()}`
   btn.className = reviewMode === 'on' ? 'toggle-btn active' : 'toggle-btn'
 }
+
+// Expose functions to onclick handlers
+window.handleLogin = handleLogin
+window.handleLogout = handleLogout
+window.toggleReviewMode = toggleReviewMode
+window.openDetail = openDetail
+window.closeModal = closeModal
+window.approveFortune = approveFortune
+window.rejectFortune = rejectFortune
 
 // Auto-refresh every 30s
 setInterval(() => { if (document.getElementById('dashboard').style.display === 'block') loadDashboard() }, 30000)
