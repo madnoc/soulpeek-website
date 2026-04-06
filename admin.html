@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SoulPeek Admin</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0e0b14; color: #ede7d9; min-height: 100vh; }
+
+    /* Login */
+    .login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .login-box { width: 320px; text-align: center; }
+    .login-box h1 { font-size: 24px; margin-bottom: 8px; }
+    .login-box p { font-size: 13px; color: rgba(237,231,217,0.4); margin-bottom: 32px; }
+    .login-box input { width: 100%; height: 44px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0 16px; color: #ede7d9; font-size: 14px; margin-bottom: 12px; outline: none; }
+    .login-box input:focus { border-color: #b8a0d4; }
+    .login-box button { width: 100%; height: 44px; background: #b8a0d4; border: none; border-radius: 10px; color: #0e0b14; font-weight: 600; font-size: 14px; cursor: pointer; }
+    .login-box button:hover { opacity: 0.9; }
+    .login-error { color: #e57373; font-size: 12px; margin-top: 8px; }
+
+    /* Dashboard */
+    .dashboard { display: none; max-width: 1000px; margin: 0 auto; padding: 24px; }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+    .header h1 { font-size: 20px; }
+    .header-actions { display: flex; gap: 12px; align-items: center; }
+    .toggle-btn { height: 36px; padding: 0 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: #ede7d9; font-size: 13px; cursor: pointer; }
+    .toggle-btn.active { background: #b8a0d4; color: #0e0b14; border-color: #b8a0d4; }
+    .toggle-btn:hover { opacity: 0.85; }
+    .logout-btn { height: 36px; padding: 0 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(237,231,217,0.5); font-size: 13px; cursor: pointer; }
+
+    /* Stats */
+    .stats { display: flex; gap: 16px; margin-bottom: 32px; }
+    .stat-card { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; }
+    .stat-value { font-size: 28px; font-weight: 700; color: #b8a0d4; }
+    .stat-label { font-size: 12px; color: rgba(237,231,217,0.4); margin-top: 4px; }
+
+    /* Fortune list */
+    .fortune-list { display: flex; flex-direction: column; gap: 12px; }
+    .fortune-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; cursor: pointer; transition: border-color 0.2s; }
+    .fortune-card:hover { border-color: rgba(184,160,212,0.3); }
+    .fortune-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .fortune-type { font-size: 13px; font-weight: 600; color: #b8a0d4; text-transform: uppercase; letter-spacing: 0.5px; }
+    .fortune-time { font-size: 11px; color: rgba(237,231,217,0.3); }
+    .fortune-user { font-size: 13px; color: rgba(237,231,217,0.6); margin-bottom: 4px; }
+    .fortune-preview { font-size: 13px; color: rgba(237,231,217,0.4); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .fortune-status { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+    .status-pending { background: rgba(255,183,77,0.15); color: #ffb74d; }
+    .status-approved { background: rgba(129,199,132,0.15); color: #81c784; }
+    .status-rejected { background: rgba(229,115,115,0.15); color: #e57373; }
+
+    /* Detail modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; overflow-y: auto; }
+    .modal { max-width: 700px; margin: 40px auto; background: #1a1520; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .modal-header h2 { font-size: 16px; }
+    .modal-close { background: none; border: none; color: rgba(237,231,217,0.5); font-size: 20px; cursor: pointer; }
+    .modal-body { padding: 24px; }
+    .modal-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    .meta-chip { font-size: 12px; background: rgba(255,255,255,0.06); padding: 4px 10px; border-radius: 6px; color: rgba(237,231,217,0.6); }
+    .modal-content { font-size: 14px; line-height: 1.8; color: rgba(237,231,217,0.75); white-space: pre-wrap; max-height: 400px; overflow-y: auto; margin-bottom: 20px; padding: 16px; background: rgba(0,0,0,0.2); border-radius: 10px; }
+    .modal-actions { display: flex; gap: 12px; padding: 20px 24px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .btn-approve { flex: 1; height: 44px; background: #81c784; border: none; border-radius: 10px; color: #0e0b14; font-weight: 600; font-size: 14px; cursor: pointer; }
+    .btn-reject { flex: 1; height: 44px; background: transparent; border: 1px solid #e57373; border-radius: 10px; color: #e57373; font-weight: 600; font-size: 14px; cursor: pointer; }
+    .btn-approve:hover { opacity: 0.9; }
+    .btn-reject:hover { background: rgba(229,115,115,0.1); }
+
+    /* User history */
+    .user-history { margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .user-history h3 { font-size: 13px; color: rgba(237,231,217,0.5); margin-bottom: 12px; }
+    .history-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 12px; color: rgba(237,231,217,0.4); }
+    .history-type { color: #b8a0d4; font-weight: 600; text-transform: uppercase; }
+
+    .empty { text-align: center; padding: 60px 24px; color: rgba(237,231,217,0.3); }
+    .loading { text-align: center; padding: 40px; color: rgba(237,231,217,0.3); }
+  </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h1>SoulPeek Admin</h1>
+    <p>Sign in with your admin account</p>
+    <input type="email" id="loginEmail" placeholder="Email" />
+    <input type="password" id="loginPassword" placeholder="Password" />
+    <button onclick="handleLogin()">Sign In</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div class="dashboard" id="dashboard">
+  <div class="header">
+    <h1>SoulPeek Admin</h1>
+    <div class="header-actions">
+      <button class="toggle-btn" id="reviewToggle" onclick="toggleReviewMode()">Review Mode: OFF</button>
+      <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-value" id="pendingCount">0</div>
+      <div class="stat-label">Pending Review</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="todayCount">0</div>
+      <div class="stat-label">Today's Readings</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="totalUsers">0</div>
+      <div class="stat-label">Total Users</div>
+    </div>
+  </div>
+
+  <div class="fortune-list" id="fortuneList">
+    <div class="loading">Loading...</div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Reading Detail</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-meta" id="modalMeta"></div>
+      <div class="modal-content" id="modalContent"></div>
+      <div class="user-history" id="userHistory"></div>
+    </div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = 'https://qdeiprwyqbxpqgqqkvbj.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkZWlwcnd5cWJ4cHFncXFrdmJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDQ0OTksImV4cCI6MjA5MDM4MDQ5OX0.LoHEEZ-AHo4XH0hlxs8icgFJT14vDl0x2_omgzRPKFc'
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+let currentUser = null
+let reviewMode = 'off'
+
+// Check session on load
+async function init() {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session) {
+    currentUser = session.user
+    await checkAdmin()
+  }
+}
+
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value
+  const password = document.getElementById('loginPassword').value
+  const errorEl = document.getElementById('loginError')
+  errorEl.textContent = ''
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) { errorEl.textContent = error.message; return }
+
+  currentUser = data.user
+  await checkAdmin()
+}
+
+async function checkAdmin() {
+  const { data } = await supabase.from('admin_users').select('email').eq('email', currentUser.email).maybeSingle()
+  if (!data) {
+    document.getElementById('loginError').textContent = 'Access denied. Not an admin.'
+    await supabase.auth.signOut()
+    return
+  }
+  document.getElementById('loginScreen').style.display = 'none'
+  document.getElementById('dashboard').style.display = 'block'
+  loadDashboard()
+}
+
+async function handleLogout() {
+  await supabase.auth.signOut()
+  location.reload()
+}
+
+async function loadDashboard() {
+  // Stats
+  const { count: pending } = await supabase.from('fortunes').select('*', { count: 'exact', head: true }).eq('status', 'pending_review')
+  const today = new Date().toISOString().split('T')[0]
+  const { count: todayTotal } = await supabase.from('fortunes').select('*', { count: 'exact', head: true }).gte('created_at', today)
+  const { count: users } = await supabase.from('users').select('*', { count: 'exact', head: true })
+
+  document.getElementById('pendingCount').textContent = pending ?? 0
+  document.getElementById('todayCount').textContent = todayTotal ?? 0
+  document.getElementById('totalUsers').textContent = users ?? 0
+
+  // Review mode
+  const { data: settings } = await supabase.from('app_settings').select('value').eq('key', 'review_mode').single()
+  reviewMode = settings?.value ?? 'off'
+  updateReviewToggle()
+
+  // Load fortunes (pending first, then recent)
+  const { data: fortunes } = await supabase
+    .from('fortunes')
+    .select('id, type, persona, user_id, intention, result_text, status, created_at, credit_cost')
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  // Get user names
+  const userIds = [...new Set((fortunes ?? []).map(f => f.user_id))]
+  const { data: usersList } = await supabase.from('users').select('id, display_name, email').in('id', userIds)
+  const usersMap = Object.fromEntries((usersList ?? []).map(u => [u.id, u]))
+
+  renderFortunes(fortunes ?? [], usersMap)
+}
+
+function renderFortunes(fortunes, usersMap) {
+  const list = document.getElementById('fortuneList')
+  if (fortunes.length === 0) {
+    list.innerHTML = '<div class="empty">No readings yet</div>'
+    return
+  }
+
+  // Sort: pending first, then by date
+  const sorted = [...fortunes].sort((a, b) => {
+    if (a.status === 'pending_review' && b.status !== 'pending_review') return -1
+    if (b.status === 'pending_review' && a.status !== 'pending_review') return 1
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+
+  list.innerHTML = sorted.map(f => {
+    const user = usersMap[f.user_id]
+    const userName = user?.display_name ?? user?.email ?? 'Unknown'
+    const preview = (f.result_text ?? '').slice(0, 120).replace(/\n/g, ' ')
+    const time = new Date(f.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    const statusClass = f.status === 'pending_review' ? 'status-pending' : f.status === 'rejected' ? 'status-rejected' : 'status-approved'
+    const statusLabel = f.status === 'pending_review' ? 'Pending' : f.status === 'rejected' ? 'Rejected' : 'Approved'
+
+    return `<div class="fortune-card" onclick="openDetail('${f.id}')">
+      <div class="fortune-card-header">
+        <div><span class="fortune-type">${f.type}</span> <span class="fortune-status ${statusClass}">${statusLabel}</span></div>
+        <span class="fortune-time">${time}</span>
+      </div>
+      <div class="fortune-user">${userName} &middot; ${f.persona}</div>
+      <div class="fortune-preview">${preview}...</div>
+    </div>`
+  }).join('')
+}
+
+async function openDetail(fortuneId) {
+  const { data: fortune } = await supabase.from('fortunes').select('*').eq('id', fortuneId).single()
+  if (!fortune) return
+
+  const { data: user } = await supabase.from('users').select('*').eq('id', fortune.user_id).single()
+  const userName = user?.display_name ?? 'Unknown'
+
+  document.getElementById('modalTitle').textContent = `${fortune.type.toUpperCase()} Reading`
+
+  const meta = document.getElementById('modalMeta')
+  meta.innerHTML = [
+    `<span class="meta-chip">User: ${userName}</span>`,
+    `<span class="meta-chip">Guide: ${fortune.persona}</span>`,
+    `<span class="meta-chip">Credits: ${fortune.credit_cost ?? 0}</span>`,
+    fortune.intention ? `<span class="meta-chip">Q: ${fortune.intention.slice(0, 50)}</span>` : '',
+    `<span class="meta-chip">${new Date(fortune.created_at).toLocaleString()}</span>`,
+  ].filter(Boolean).join('')
+
+  document.getElementById('modalContent').textContent = fortune.result_text ?? 'No content'
+
+  // User history
+  const { data: history } = await supabase
+    .from('fortunes')
+    .select('type, persona, intention, status, created_at')
+    .eq('user_id', fortune.user_id)
+    .neq('id', fortuneId)
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  const historyEl = document.getElementById('userHistory')
+  if (history && history.length > 0) {
+    historyEl.innerHTML = `<h3>Previous readings by ${userName} (${history.length})</h3>` +
+      history.map(h => {
+        const date = new Date(h.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        return `<div class="history-item">
+          <span><span class="history-type">${h.type}</span> with ${h.persona}${h.intention ? ' — ' + h.intention.slice(0, 40) : ''}</span>
+          <span>${date}</span>
+        </div>`
+      }).join('')
+  } else {
+    historyEl.innerHTML = '<h3>First reading by this user</h3>'
+  }
+
+  // Actions
+  const actions = document.getElementById('modalActions')
+  if (fortune.status === 'pending_review') {
+    actions.innerHTML = `
+      <button class="btn-approve" onclick="approveFortune('${fortuneId}')">Approve</button>
+      <button class="btn-reject" onclick="rejectFortune('${fortuneId}')">Reject & Refund</button>`
+  } else {
+    actions.innerHTML = `<div style="flex:1;text-align:center;color:rgba(237,231,217,0.3);font-size:13px;">Status: ${fortune.status}</div>`
+  }
+
+  document.getElementById('modalOverlay').style.display = 'block'
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').style.display = 'none'
+}
+
+async function approveFortune(id) {
+  const { error } = await supabase.from('fortunes').update({ status: 'approved' }).eq('id', id)
+  if (error) { alert('Error: ' + error.message); return }
+  closeModal()
+  loadDashboard()
+}
+
+async function rejectFortune(id) {
+  if (!confirm('Reject this reading and refund credits?')) return
+  const { data: fortune } = await supabase.from('fortunes').select('user_id, type, credit_cost').eq('id', id).single()
+  if (!fortune) return
+
+  await supabase.from('fortunes').update({ status: 'rejected' }).eq('id', id)
+
+  // Refund via RPC
+  try {
+    await supabase.rpc('refund_credits', {
+      p_user_id: fortune.user_id,
+      p_amount: fortune.credit_cost || 3,
+      p_fortune_type: fortune.type + ' (rejected by admin)',
+    })
+  } catch (e) { console.error('Refund failed:', e) }
+
+  closeModal()
+  loadDashboard()
+}
+
+async function toggleReviewMode() {
+  const newMode = reviewMode === 'on' ? 'off' : 'on'
+  await supabase.from('app_settings').update({ value: newMode, updated_at: new Date().toISOString() }).eq('key', 'review_mode')
+  reviewMode = newMode
+  updateReviewToggle()
+}
+
+function updateReviewToggle() {
+  const btn = document.getElementById('reviewToggle')
+  btn.textContent = `Review Mode: ${reviewMode.toUpperCase()}`
+  btn.className = reviewMode === 'on' ? 'toggle-btn active' : 'toggle-btn'
+}
+
+// Auto-refresh every 30s
+setInterval(() => { if (document.getElementById('dashboard').style.display === 'block') loadDashboard() }, 30000)
+
+init()
+</script>
+</body>
+</html>
