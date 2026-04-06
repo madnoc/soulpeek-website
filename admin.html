@@ -201,7 +201,7 @@ async function loadDashboard() {
   updateReviewToggle()
 
   // Load fortunes (pending first, then recent)
-  const { data: fortunes } = await supabase
+  const { data: fortunes } = await sb
     .from('fortunes')
     .select('id, type, persona, user_id, intention, result_text, status, created_at, credit_cost')
     .order('created_at', { ascending: false })
@@ -269,7 +269,7 @@ async function openDetail(fortuneId) {
   document.getElementById('modalContent').textContent = fortune.result_text ?? 'No content'
 
   // User history
-  const { data: history } = await supabase
+  const { data: history } = await sb
     .from('fortunes')
     .select('type, persona, intention, status, created_at')
     .eq('user_id', fortune.user_id)
