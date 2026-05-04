@@ -20,13 +20,14 @@
   <div class="container">
     <a href="/" class="back">Back to SoulPeek</a>
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: April 6, 2026</p>
+    <p class="updated">Last updated: May 4, 2026</p>
 
     <h2>Overview</h2>
     <p>SoulPeek ("we", "our", "us") respects your privacy. This policy explains how we collect, use, and protect your personal information when you use the SoulPeek mobile application.</p>
 
     <h2>Information We Collect</h2>
-    <p>Account information: When you create an account, we collect your email address (or Apple/Google account identifier), display name, birth date, and optionally your birth time and birth place. This information is used to personalize your readings.</p>
+    <p>Account information: When you create an account, we collect your email address (or Apple/Google account identifier), display name, optional gender and relationship status, profile photo, birth date, optional birth time, and optional birth place (city and country). When you select a birth place from our suggestions, we also store the approximate coordinates of that city to power astrology calculations such as the natal chart.</p>
+    <p>Profile preferences: We store your selected guide (persona), credit balance, journal entries, and a device push token (only if you enable notifications).</p>
     <p>Reading data: When you request a reading, we process the information you provide (questions, photos, preferences) to generate your reading. This data is stored securely and associated with your account.</p>
     <p>Photos: If you upload photos for coffee cup, palm, face, or aura readings, these photos are stored temporarily and automatically deleted after 7 days. Photos are transmitted securely and processed only for the purpose of generating your reading.</p>
     <p>Usage data: We collect anonymous usage analytics (which features are used, reading types requested) to improve the app experience. We use PostHog for analytics, which does not collect personally identifiable information.</p>
@@ -39,10 +40,10 @@
 
     <h2>Third-Party Services</h2>
     <p>We use the following third-party services to operate SoulPeek:</p>
-    <p>Supabase (database, authentication, storage), Anthropic Claude API (reading generation, your data is processed according to Anthropic's data usage policy and is not used for model training), RevenueCat (in-app purchase management), PostHog (anonymous analytics), Firebase (push notifications).</p>
+    <p>Supabase (database, authentication, storage), Anthropic Claude API and Google Gemini API (reading generation, your data is processed according to each provider's data usage policy and is not used for model training), RevenueCat (in-app purchase management), PostHog (anonymous analytics), Firebase (push notifications), LocationIQ (city autocomplete and approximate coordinates for birth-place input — only the search text you type is sent).</p>
 
     <h2>Data Retention</h2>
-    <p>Photos: Automatically deleted after 7 days unless you choose to save them. Reading history: Retained as long as your account is active. Account data: Deleted within 30 days of account deletion request.</p>
+    <p>Photos: Automatically deleted after 7 days unless you choose to save them. Reading history: Retained as long as your account is active. Account data: When you request deletion, your account is locked immediately and all data is permanently deleted within 30 days. If you change your mind during that 30-day window, email support@soulpeek.app from the account's email address to restore everything.</p>
 
     <h2>Your Rights</h2>
     <p>You have the right to: access all your data (via the "Download My Data" feature in Settings), delete your account and all associated data, opt out of push notifications at any time, request information about how your data is processed.</p>
